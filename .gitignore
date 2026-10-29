@@ -1,0 +1,8 @@
+build/
+.gradle/
+*.apk
+local.properties
+build_log.txt
+.idea/
+__pycache__/
+out/

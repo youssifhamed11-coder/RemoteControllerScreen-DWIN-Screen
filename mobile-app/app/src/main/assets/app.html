@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f7a56">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Screen Control</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f7a56'/%3E%3Crect x='12' y='16' width='40' height='26' rx='4' fill='none' stroke='white' stroke-width='4'/%3E%3Cpath d='M24 50h16' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f3f6f4; --surface:#ffffff; --surface2:#eef3f0; --text:#14211b; --muted:#5d6f66;
+  --line:#dbe5df; --brand:#0f7a56; --brand2:#12a173; --brandSoft:#e1f3eb; --danger:#c8372d;
+  --dangerSoft:#fbe7e5; --warn:#b7791f; --warnSoft:#fdf3e1; --ok:#1c8a4f; --okSoft:#e2f5ea;
+  --shadow:0 1px 2px rgba(16,40,28,.06),0 4px 16px rgba(16,40,28,.06); --radius:16px;
+  --screenBg:#f7fbf8; --screenText:#e0221b;
+}
+:root[data-theme="dark"]{
+  --bg:#0d1512; --surface:#15201b; --surface2:#1b2a23; --text:#e7f1ec; --muted:#93a89d;
+  --line:#26372f; --brand:#25b383; --brand2:#3fd09d; --brandSoft:#163328; --danger:#ff6b5f;
+  --dangerSoft:#3a1d1a; --warn:#f0b452; --warnSoft:#3a2d16; --ok:#4fd08a; --okSoft:#163322;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25);
+  --screenBg:#eef6f1; --screenText:#e0221b;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI",Tahoma,"Noto Sans Arabic",sans-serif;font-size:15px}
+body{min-height:100vh;padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+button,input,textarea,select{font:inherit;color:inherit}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:14px 16px 10px;display:flex;align-items:center;gap:12px}
+.logo{width:40px;height:40px;border-radius:12px;background:var(--brand);display:grid;place-items:center;flex:none}
+.logo svg{width:24px;height:24px;stroke:#fff}
+.htitle{flex:1;min-width:0}
+.htitle b{display:block;font-size:17px}
+.htitle small{color:var(--muted);font-size:12.5px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:12.5px;font-weight:600;background:var(--surface2);color:var(--muted);white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+.pill.ok{background:var(--okSoft);color:var(--ok)} .pill.bad{background:var(--dangerSoft);color:var(--danger)} .pill.warn{background:var(--warnSoft);color:var(--warn)}
+main{padding:0 16px;max-width:640px;margin:0 auto}
+.page{display:none;animation:fade .18s ease} .page.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:14px}
+.card h3{margin:0 0 12px;font-size:15.5px;display:flex;align-items:center;gap:8px}
+.card h3 svg{width:18px;height:18px;stroke:var(--brand)}
+.muted{color:var(--muted)} .small{font-size:12.5px}
+.row{display:flex;gap:10px;align-items:center} .wrap{flex-wrap:wrap} .grow{flex:1}
+/* screen preview */
+.screen{background:#1d2a24;border-radius:14px;padding:8px}
+.screenIn{position:relative;aspect-ratio:5/3;background:var(--screenBg);border-radius:8px;overflow:hidden;
+  background-image:linear-gradient(170deg,transparent 78%,#1a8a5f 78%,#0f6b4a 100%)}
+.screenIn .box{position:absolute;left:7.75%;right:7.75%;top:26.7%;bottom:20.2%;border:1.5px solid #146b4b;border-radius:6px;background:#fbfdfc;
+  padding:2.5% 2%;font-family:"Courier New",monospace;color:var(--screenText);font-weight:700;font-size:clamp(9px,3.3vw,17px);line-height:1.15;
+  overflow:hidden;word-break:break-all;direction:ltr;text-align:left}
+.screenIn .tag{direction:ltr;position:absolute;top:6%;left:5%;right:5%;display:flex;justify-content:space-between;font-size:10px;color:#2a5a46;font-weight:700}
+.screenIn .empty{color:#9fb5aa;font-weight:500;font-family:inherit}
+.curmeta{display:flex;justify-content:space-between;margin-top:10px;font-size:12.5px;color:var(--muted)}
+textarea,input[type=text],input[type=password],input[type=number],input[type=datetime-local],select{
+  width:100%;background:var(--surface2);border:1.5px solid transparent;border-radius:12px;padding:12px 14px;outline:none;transition:border .15s}
+textarea:focus,input:focus,select:focus{border-color:var(--brand)}
+textarea{min-height:96px;resize:vertical;direction:ltr;text-align:left}
+.counter{font-size:12px;color:var(--muted);direction:ltr}
+.counter.over{color:var(--danger)}
+.warnline{display:none;margin-top:8px;padding:8px 10px;border-radius:10px;background:var(--warnSoft);color:var(--warn);font-size:12.5px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:7px 13px;font-size:13px;cursor:pointer}
+.chip.on{background:var(--brandSoft);border-color:var(--brand);color:var(--brand);font-weight:700}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:12px;padding:12px 16px;font-weight:700;cursor:pointer;background:var(--surface2);transition:transform .08s,opacity .15s}
+.btn:active{transform:scale(.97)} .btn:disabled{opacity:.5}
+.btn svg{width:18px;height:18px}
+.btn.primary{background:var(--brand);color:#fff} .btn.primary svg{stroke:#fff}
+.btn.danger{background:var(--dangerSoft);color:var(--danger)} .btn.danger svg{stroke:var(--danger)}
+.btn.ghost{background:transparent;border:1.5px solid var(--line)}
+.btn.block{width:100%}
+.btn svg{stroke:currentColor}
+label.chk{display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer}
+label.chk input{width:18px;height:18px;accent-color:var(--brand)}
+/* lists */
+.item{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)}
+.item:first-child{border-top:0;padding-top:2px}
+.item .txt{flex:1;min-width:0;direction:ltr;text-align:left;word-break:break-word;font-weight:500}
+.item .meta{font-size:12px;color:var(--muted);margin-top:4px;direction:rtl;text-align:right}
+.acts{display:flex;gap:6px;flex:none}
+.ib{width:36px;height:36px;border-radius:10px;border:0;background:var(--surface2);display:grid;place-items:center;cursor:pointer}
+.ib svg{width:18px;height:18px;stroke:var(--muted)}
+.ib.on{background:var(--brandSoft)} .ib.on svg{stroke:var(--brand);fill:var(--brand)}
+.ib.del svg{stroke:var(--danger)}
+.badge{display:inline-block;background:var(--brandSoft);color:var(--brand);font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;margin-inline-start:6px;direction:rtl}
+.emptyState{text-align:center;color:var(--muted);padding:22px 8px}
+.emptyState svg{width:42px;height:42px;stroke:var(--line);margin-bottom:6px}
+/* settings rows */
+.set{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.set:first-of-type{border-top:0}
+.set .lbl{flex:1} .set .lbl b{display:block;font-size:14px} .set .lbl span{font-size:12.5px;color:var(--muted)}
+.res{font-size:12.5px;font-weight:700;padding:4px 9px;border-radius:8px;background:var(--surface2);color:var(--muted);white-space:nowrap}
+.res.ok{background:var(--okSoft);color:var(--ok)} .res.bad{background:var(--dangerSoft);color:var(--danger)} .res.run{background:var(--warnSoft);color:var(--warn)}
+.seg{display:flex;background:var(--surface2);border-radius:12px;padding:4px;gap:4px}
+.seg button{flex:1;border:0;background:transparent;padding:8px 6px;border-radius:9px;font-weight:600;font-size:13px;cursor:pointer}
+.seg button.on{background:var(--surface);box-shadow:var(--shadow);color:var(--brand)}
+input[type=range]{width:100%;accent-color:var(--brand)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px}
+.kv span:nth-child(odd){color:var(--muted)} .kv span:nth-child(even){direction:ltr;text-align:left;font-weight:600}
+.log{background:var(--surface2);border-radius:12px;padding:10px;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;direction:ltr;text-align:left;max-height:220px;overflow:auto;white-space:pre-wrap}
+/* tab bar */
+nav{position:fixed;bottom:0;left:0;right:0;z-index:6;background:var(--surface);box-shadow:0 -1px 0 var(--line);display:flex;padding:8px 8px calc(8px + env(safe-area-inset-bottom))}
+nav button{flex:1;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:var(--muted);padding:6px 0;border-radius:12px;cursor:pointer}
+nav button svg{width:23px;height:23px;stroke:currentColor}
+nav button.on{color:var(--brand)} nav button.on .ico{background:var(--brandSoft)}
+nav .ico{padding:3px 16px;border-radius:999px;display:grid;place-items:center}
+/* banner, toast, sheet */
+.banner{display:none;margin:0 16px 12px;padding:10px 14px;border-radius:12px;background:var(--dangerSoft);color:var(--danger);font-size:13px;font-weight:600;align-items:center;gap:10px}
+.banner.show{display:flex}
+.toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);opacity:0;
+  background:#16231d;color:#fff;padding:11px 16px;border-radius:12px;font-size:13.5px;transition:.2s;z-index:20;max-width:88vw;text-align:center;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.toast.bad{background:#a52a21}
+.sheetBg{position:fixed;inset:0;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:.2s;z-index:30}
+.sheetBg.show{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:31;background:var(--surface);border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));
+  transform:translateY(105%);transition:transform .22s ease;max-width:640px;margin:0 auto;max-height:90vh;overflow:auto}
+.sheet.show{transform:none}
+.sheet h3{margin:0 0 14px;font-size:16px}
+.grab{width:42px;height:5px;border-radius:9px;background:var(--line);margin:-6px auto 12px}
+.fab{position:fixed;left:18px;bottom:calc(92px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:18px;border:0;background:var(--brand);
+  box-shadow:0 6px 18px rgba(15,122,86,.35);display:none;place-items:center;z-index:7;cursor:pointer}
+.fab svg{width:26px;height:26px;stroke:#fff}
+.fab.show{display:grid}
+.field{margin-bottom:12px} .field>label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--muted)}
+.spin{width:16px;height:16px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="i-screen" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5" fill="none"/><path d="M9 3h6l-1 6 3 4H7l3-4-1-6z"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v4h4"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-erase" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H8l-5-5 10-10 8 8-6 7"/><path d="M6 12l6 6"/></symbol>
+    <symbol id="i-wifi" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M2 9a15 15 0 0 1 20 0"/><circle cx="12" cy="19.5" r="1"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-pulse" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></symbol>
+  </defs>
+</svg>
+
+<header>
+  <div class="logo"><svg><use href="#i-screen"/></svg></div>
+  <div class="htitle"><b>Screen Control</b><small id="hsub">جاري الاتصال…</small></div>
+  <span class="pill" id="pillScreen"><span class="dot"></span><span>الشاشة</span></span>
+</header>
+
+<div class="banner" id="banner">
+  <svg width="18" height="18"><use href="#i-wifi"/></svg>
+  <span class="grow">انقطع الاتصال بالـ ESP32 — اتأكد إنك متوصل بشبكة الشاشة</span>
+  <button class="btn ghost" style="padding:6px 10px" onclick="connectWifi()">اتصل</button>
+  <button class="btn ghost" style="padding:6px 10px" onclick="refresh(true)">إعادة</button>
+</div>
+
+<main>
+<!-- ================= HOME ================= -->
+<section class="page on" id="p-home">
+  <div class="card">
+    <h3><svg><use href="#i-screen"/></svg>المعروض على الشاشة الآن</h3>
+    <div class="screen"><div class="screenIn">
+      <div class="tag"><span>BORG AL ARAB TECH UNIV</span><span>IT DEPT</span></div>
+      <div class="box" id="prevBox"><span class="empty">— فاضي —</span></div>
+    </div></div>
+    <div class="curmeta"><span id="curSrc">—</span><span id="curLeft"></span></div>
+  </div>
+
+  <div class="card">
+    <h3><svg><use href="#i-send"/></svg>رسالة جديدة</h3>
+    <textarea id="txt" maxlength="160" placeholder="اكتب رسالتك… عربي أو English"></textarea>
+    <div class="row" style="margin-top:6px"><span class="grow small muted">الشاشة بتعرض عربي وإنجليزي وأرقام — في النص تلقائي</span><span class="counter" id="cnt">0 / 160</span></div>
+    <div class="warnline" id="arWarn">⚠️ فيه حروف عربي أو رموز مش هتظهر على الشاشة — هتتحول لـ "?"</div>
+
+    <div class="field" style="margin-top:14px"><label>مدة العرض</label>
+      <div class="chips" id="durChips">
+        <button class="chip on" data-d="0">دائم</button>
+        <button class="chip" data-d="60">دقيقة</button>
+        <button class="chip" data-d="300">5 د</button>
+        <button class="chip" data-d="600">10 د</button>
+        <button class="chip" data-d="1800">30 د</button>
+        <button class="chip" data-d="3600">ساعة</button>
+      </div>
+      <div class="small muted" style="margin-top:8px">بعد انتهاء المدة الشاشة بترجع للرسالة المثبتة (أو تتمسح)</div>
+    </div>
+    <label class="chk" style="margin-bottom:14px"><input type="checkbox" id="saveIt"> احفظها في الرسائل</label>
+    <div class="row">
+      <button class="btn primary grow" id="sendBtn" onclick="sendNow()"><svg><use href="#i-send"/></svg>اعرض على الشاشة</button>
+      <button class="btn danger" onclick="clearScreen()" title="مسح الشاشة"><svg><use href="#i-erase"/></svg>مسح</button>
+    </div>
+  </div>
+
+  <div class="card" id="quickCard" style="display:none">
+    <h3><svg><use href="#i-list"/></svg>رسائل سريعة</h3>
+    <div class="chips" id="quick"></div>
+  </div>
+</section>
+
+<!-- ================= MESSAGES ================= -->
+<section class="page" id="p-msgs">
+  <div class="card">
+    <h3><svg><use href="#i-list"/></svg>الرسائل المحفوظة <span class="badge" id="msgCount">0</span></h3>
+    <div class="small muted" style="margin:-4px 0 10px">📌 الرسالة المثبتة بتفضل على الشاشة لما مايكونش فيه رسالة مؤقتة</div>
+    <div id="msgList"></div>
+  </div>
+</section>
+
+<!-- ================= SCHEDULE ================= -->
+<section class="page" id="p-sched">
+  <div class="card">
+    <h3><svg><use href="#i-clock"/></svg>رسائل متجدولة <span class="badge" id="schCount">0</span></h3>
+    <div class="small muted" style="margin:-4px 0 10px">الـ ESP32 بيعرضها في ميعادها حتى لو قفلت الأبلكيشن</div>
+    <div id="schList"></div>
+  </div>
+</section>
+
+<!-- ================= SETTINGS ================= -->
+<section class="page" id="p-set">
+  <div class="card">
+    <h3><svg><use href="#i-pulse"/></svg>اختبار التوصيل</h3>
+    <div class="set"><div class="lbl"><b>الاتصال بشبكة الشاشة</b><span>يوصّل الموبايل بواي فاي الـ ESP32</span></div><button class="btn primary" onclick="connectWifi()">اتصل</button></div>
+    <div class="set"><div class="lbl"><b>الموبايل ← ESP32</b><span>هل الأبلكيشن واصل للـ ESP32 على الواي فاي؟</span></div><span class="res" id="r1">—</span><button class="btn ghost" onclick="testEsp()">اختبار</button></div>
+    <div class="set"><div class="lbl"><b>ESP32 ← الشاشة</b><span>هل الشاشة بترد على الـ ESP32؟</span></div><span class="res" id="r2">—</span><button class="btn ghost" onclick="testScreen()">اختبار</button></div>
+    <div class="set"><div class="lbl"><b>فحص كامل + تقرير</b><span>يفحص كل الأطراف والسرعات ويطلع تقرير تنسخه وتبعته</span></div><button class="btn primary" onclick="location.href=IN_APP?'diag.html':'/diag'">افتح الفحص</button></div>
+    <div class="set"><div class="lbl"><b>رسالة تجريبية</b><span>تظهر على الشاشة 15 ثانية وتتأكد إنها وصلت</span></div><span class="res" id="r3">—</span><button class="btn ghost" onclick="testMsg()">إرسال</button></div>
+    <div id="manualBox" style="border-top:1px solid var(--line);padding-top:12px;margin-top:4px">
+      <div class="warnline" style="display:block;margin:0 0 10px">⚠️ البوردة دي موصّلة الشاشة على RX0/TX0 (أطراف 3 و 1). <b>شيل كابل الـ USB من الـ ESP32</b> وإلا الشاشة مش هتقدر ترد.</div>
+      <div class="small muted" style="margin-bottom:8px"><b>إعداد يدوي لخط الشاشة</b> — الافتراضي RX=3 TX=1</div>
+      <div class="row wrap" style="gap:8px">
+        <label class="small">RX <input type="number" id="mRx" style="width:70px;padding:8px" value="3"></label>
+        <label class="small">TX <input type="number" id="mTx" style="width:70px;padding:8px" value="1"></label>
+        <label class="small">Baud <select id="mBaud" style="width:auto;padding:8px"></select></label>
+      </div>
+      <div class="row wrap" style="gap:14px;margin:10px 0">
+        <label class="chk"><input type="checkbox" id="mInv"> عكس الإشارة (شاشة TTL مع MAX3232)</label>
+        <label class="chk"><input type="checkbox" id="mCrc"> CRC</label>
+      </div>
+      <div class="row"><span class="res grow" id="r5" style="text-align:center">—</span><button class="btn ghost" onclick="applyManual()">تطبيق وتجربة</button></div>
+    </div>
+    <div class="set"><div class="lbl"><b>البحث عن الشاشة</b><span id="pinsTxt">يدوّر على أطراف التوصيل (ممكن ياخد دقيقة)</span></div><span class="res" id="r4">—</span><button class="btn ghost" onclick="detect()">بحث</button></div>
+  </div>
+
+  <div class="card">
+    <h3><svg><use href="#i-sun"/></svg>المظهر والشاشة</h3>
+    <div class="field"><label>ثيم الأبلكيشن</label>
+      <div class="seg" id="themeSeg"><button data-t="light">فاتح</button><button data-t="dark">داكن</button><button data-t="auto">تلقائي</button></div>
+    </div>
+    <div class="field"><label>إضاءة الشاشة <span id="brVal" class="muted">100%</span></label>
+      <input type="range" dir="ltr" id="bright" min="5" max="100" step="5" value="100">
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><svg><use href="#i-wifi"/></svg>شبكة الواي فاي</h3>
+    <div class="field"><label>اسم الشبكة</label><input type="text" id="ssid" dir="ltr"></div>
+    <div class="field"><label>كلمة السر (8 حروف على الأقل)</label><input type="password" id="wpass" dir="ltr" placeholder="••••••••"></div>
+    <button class="btn block" onclick="saveWifi()">حفظ وإعادة تشغيل الـ ESP32</button>
+    <div class="small muted" style="margin-top:8px">بعد الحفظ هتحتاج تتوصل بالشبكة الجديدة</div>
+  </div>
+
+  <div class="card">
+    <h3><svg><use href="#i-info"/></svg>معلومات</h3>
+    <div class="kv" id="info"></div>
+  </div>
+
+  <div class="card">
+    <h3><svg><use href="#i-list"/></svg>سجل الأحداث</h3>
+    <div class="log" id="log">—</div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn ghost grow" onclick="loadLog()">تحديث</button>
+      <button class="btn danger grow" onclick="reboot()">إعادة تشغيل الـ ESP32</button>
+    </div>
+  </div>
+</section>
+</main>
+
+<button class="fab" id="fab" onclick="fabClick()"><svg><use href="#i-plus"/></svg></button>
+
+<nav>
+  <button class="on" data-p="home"><span class="ico"><svg><use href="#i-home"/></svg></span>الرئيسية</button>
+  <button data-p="msgs"><span class="ico"><svg><use href="#i-list"/></svg></span>الرسائل</button>
+  <button data-p="sched"><span class="ico"><svg><use href="#i-clock"/></svg></span>الجدولة</button>
+  <button data-p="set"><span class="ico"><svg><use href="#i-gear"/></svg></span>الإعدادات</button>
+</nav>
+
+<div class="sheetBg" id="sheetBg" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const IN_APP = !!window.Android;            // running inside the Android APK
+const API = window.ESP_BASE || (location.protocol==='file:' || IN_APP ? 'http://192.168.4.1' : '');
+function wifiCreds(){let s='NeuralNexus-Screen',p='12345678';try{s=localStorage.getItem('apSsid')||s;p=localStorage.getItem('apPass')||p}catch(e){}return [s,p]}
+function connectWifi(){ if(!IN_APP){toast('افتح إعدادات الواي فاي واتوصل بشبكة الشاشة');return}
+  const [s,p]=wifiCreds(); try{window.Android.connectWifi(s,p);toast('بيتوصل بـ '+s+' …')}catch(e){toast('مش قادر يفتح الاتصال',true)} }
+const $ = id => document.getElementById(id);
+let S = null, MSGS = [], SCHED = [], online = false, dur = 0, curPage = 'home', failCount = 0;
+
+/* ---------- helpers ---------- */
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function toast(m,bad){const t=$('toast');t.textContent=m;t.className='toast show'+(bad?' bad':'');clearTimeout(t._h);t._h=setTimeout(()=>t.className='toast',2600)}
+/* In the Android app, HTTP goes through native code bound to the Wi-Fi network
+   (avoids WebView CORS/private-network blocks and phones routing over mobile data). */
+let _nid=0; const _np={};
+window.__nr=function(id,ok,code,text){const p=_np[id]; if(!p)return; delete _np[id]; clearTimeout(p.t);
+  if(!ok){p.rej(new Error(text||'network error'));return}
+  let j; try{j=JSON.parse(text)}catch(e){p.rej(new Error('bad response ('+code+')'));return}
+  if(!j.ok) p.rej(new Error(j.error||'error')); else p.res(j);};
+function nativeApi(path,data,timeout){
+  return new Promise((res,rej)=>{const id=String(++_nid);
+    _np[id]={res,rej,t:setTimeout(()=>{delete _np[id];rej(new Error('timeout'))},timeout+1500)};
+    try{window.Android.request(id,data?'POST':'GET',path,data?new URLSearchParams(data).toString():'',timeout)}
+    catch(e){delete _np[id];rej(e)}});
+}
+async function api(path,data,timeout=8000){
+  if(IN_APP && window.Android.request) return nativeApi(path,data,timeout);
+  const ctl=new AbortController(); const h=setTimeout(()=>ctl.abort(),timeout);
+  try{
+    const opt=data?{method:'POST',body:new URLSearchParams(data),signal:ctl.signal}:{signal:ctl.signal};
+    const r=await fetch(API+path,opt); const j=await r.json();
+    if(!j.ok) throw new Error(j.error||'error'); return j;
+  } finally{clearTimeout(h)}
+}
+function wifiInfo(){ if(!IN_APP||!window.Android.wifiInfo) return null; try{return JSON.parse(window.Android.wifiInfo())}catch(e){return null} }
+function fmtDur(s){if(!s)return 'دائم'; if(s<60)return s+' ث'; if(s<3600)return Math.round(s/60)+' د'; return (s/3600).toFixed(s%3600?1:0)+' س'}
+function fmtLeft(s){const m=Math.floor(s/60),x=s%60;return (m?m+'د ':'')+x+'ث'}
+function fmtTime(e){return new Date(e*1000).toLocaleString('ar-EG',{weekday:'short',hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'})}
+function nonAscii(t){return /[^\x20-\x7E\n]/.test(t)}
+function setRes(id,txt,cls){const e=$(id);e.textContent=txt;e.className='res '+(cls||'')}
+
+/* ---------- theme ---------- */
+function applyTheme(t){
+  let th=t; if(t==='auto') th=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+  document.documentElement.dataset.theme=th;
+  document.querySelectorAll('#themeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  try{localStorage.setItem('theme',t)}catch(e){}
+}
+let savedTheme='auto'; try{savedTheme=localStorage.getItem('theme')||'auto'}catch(e){}
+applyTheme(savedTheme);
+document.querySelectorAll('#themeSeg button').forEach(b=>b.onclick=()=>applyTheme(b.dataset.t));
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{try{if((localStorage.getItem('theme')||'auto')==='auto')applyTheme('auto')}catch(e){}});
+
+/* ---------- navigation ---------- */
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.p));
+function go(p){
+  curPage=p;
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
+  document.querySelectorAll('.page').forEach(s=>s.classList.toggle('on',s.id==='p-'+p));
+  $('fab').classList.toggle('show',p==='msgs'||p==='sched');
+  if(p==='msgs')loadMsgs(); if(p==='sched')loadSched(); if(p==='set'){loadLog();renderInfo()}
+  scrollTo(0,0);
+}
+function fabClick(){curPage==='msgs'?openMsgSheet():openSchedSheet()}
+
+/* ---------- status ---------- */
+async function syncTime(){try{await api('/api/time',{epoch:Math.floor(Date.now()/1000)})}catch(e){}}
+async function refresh(manual){
+  try{
+    S=await api('/api/status',null,4000);
+    if(!online){online=true; syncTime(); loadMsgs();}
+    if(!S.time.synced) syncTime();
+    failCount=0; $('banner').classList.remove('show');
+    renderStatus();
+  }catch(e){
+    failCount++;
+    if(failCount>=2||manual){online=false;$('banner').classList.add('show');
+      const p=$('pillScreen');p.className='pill bad';p.lastChild.textContent='غير متصل';
+      const w=wifiInfo(), ap=wifiCreds()[0];
+      $('hsub').textContent=!w||!w.ssid?'مش متصل بالـ ESP32':(w.ssid===ap?'متوصل بشبكة الشاشة بس الـ ESP32 مش بيرد':('متوصل بـ '+w.ssid+' — اضغط اتصل'));}
+    if(manual) toast('مش قادر يوصل للـ ESP32',true);
+  }
+}
+function renderStatus(){
+  const sc=S.screen, p=$('pillScreen');
+  if(sc.alive){p.className='pill ok';p.lastChild.textContent='الشاشة متصلة'}
+  else if(sc.found){p.className='pill warn';p.lastChild.textContent='الشاشة مش بترد'}
+  else if(sc.searching){p.className='pill warn';p.lastChild.textContent='بيدوّر على الشاشة…'}
+  else if(sc.blind){p.className='pill warn';p.lastChild.textContent='بيبعت للشاشة (مفيش رد)'}
+  else {p.className='pill bad';p.lastChild.textContent='الشاشة مش متوصلة'}
+  $('hsub').textContent=S.wifi.ssid+' · '+S.wifi.ip; try{localStorage.setItem('apSsid',S.wifi.ssid)}catch(e){}
+  const c=S.current, box=$('prevBox');
+  box.innerHTML=c.text?esc(c.text):'<span class="empty">— فاضي —</span>';
+  const src={app:'من الأبلكيشن',pinned:'📌 رسالة مثبتة',saved:'رسالة محفوظة',schedule:'⏰ رسالة متجدولة',cleared:'الشاشة متمسحة',test:'رسالة تجريبية',boot:'بداية التشغيل'}[c.source]||c.source;
+  $('curSrc').textContent=src;
+  $('curLeft').textContent=c.secondsLeft?('⏳ فاضل '+fmtLeft(c.secondsLeft)):'';
+  if(document.activeElement!==$('bright')){$('bright').value=sc.brightness;$('brVal').textContent=sc.brightness+'%'}
+  if(document.activeElement!==$('ssid')&&!$('ssid').value) $('ssid').value=S.wifi.ssid;
+  const lk='RX='+sc.rx+' TX='+sc.tx+' · '+sc.baud+(sc.inv?' · معكوس':'')+(sc.crc?' · CRC':'');
+  $('pinsTxt').textContent=sc.found?('الشاشة بترد على '+lk):sc.blind?('مفيش رد — بيبعت على '+lk):'يدوّر على أطراف التوصيل (ممكن ياخد دقيقة)';
+  if(!window._mFilled && sc.rx>=0){ window._mFilled=true; $('mRx').value=sc.rx>=0?sc.rx:3; $('mTx').value=sc.tx>=0?sc.tx:1; $('mBaud').value=sc.baud; $('mInv').checked=!!sc.inv; $('mCrc').checked=!!sc.crc; }
+  if(curPage==='set') renderInfo();
+}
+function renderInfo(){
+  if(!S)return; const up=S.uptime;
+  $('info').innerHTML=[
+    ['إصدار الـ ESP32',S.fw],['مدة التشغيل',Math.floor(up/3600)+'h '+Math.floor(up%3600/60)+'m'],['الشبكة',S.wifi.ssid],['IP',S.wifi.ip],
+    ['أجهزة متصلة',S.wifi.clients],['أطراف الشاشة',S.screen.found?('RX '+S.screen.rx+' / TX '+S.screen.tx):'—'],
+    ['إصدار الشاشة',S.screen.version?('0x'+S.screen.version.toString(16)):'—'],['رسائل اتبعتت / اتأكدت',S.screen.sent+' / '+S.screen.acked],
+    ['الساعة',S.time.synced?'متزامنة مع الموبايل':'مش متزامنة'],['شبكة الموبايل',(wifiInfo()||{}).ssid||'—'],['VP الرسالة','0x2000 · 160 حرف']
+  ].map(([k,v])=>'<span>'+k+'</span><span>'+esc(v)+'</span>').join('');
+}
+
+/* ---------- home ---------- */
+const txt=$('txt');
+txt.addEventListener('input',()=>{
+  const n=txt.value.length; $('cnt').textContent=n+' / 160'; $('cnt').classList.toggle('over',n>=160);
+  $('arWarn').style.display='none';
+});
+document.querySelectorAll('#durChips .chip').forEach(c=>c.onclick=()=>{
+  document.querySelectorAll('#durChips .chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');dur=+c.dataset.d;});
+async function sendNow(){
+  const t=txt.value.trim(); if(!t){toast('اكتب رسالة الأول',true);txt.focus();return}
+  const b=$('sendBtn'); b.disabled=true; const old=b.innerHTML; b.innerHTML='<span class="spin"></span> جاري الإرسال';
+  try{
+    const r=await api('/api/send',{text:t,dur,save:$('saveIt').checked?1:0});
+    toast(r.acked?'✅ الرسالة ظهرت على الشاشة':'⚠️ اتبعتت بس الشاشة ماردتش', !r.acked);
+    txt.value='';txt.dispatchEvent(new Event('input')); $('saveIt').checked=false;
+    refresh(); if($('saveIt').checked) loadMsgs(); loadMsgs();
+  }catch(e){toast('فشل الإرسال: '+e.message,true)}
+  finally{b.disabled=false;b.innerHTML=old}
+}
+async function clearScreen(){
+  try{const r=await api('/api/clear',{});toast(r.acked?'الشاشة اتمسحت':'⚠️ الشاشة ماردتش',!r.acked);refresh()}catch(e){toast('فشل: '+e.message,true)}
+}
+function renderQuick(){
+  const q=$('quick'); q.innerHTML=''; $('quickCard').style.display=MSGS.length?'block':'none';
+  MSGS.slice(0,8).forEach(m=>{const c=document.createElement('button');c.className='chip';c.style.direction='ltr';
+    c.textContent=(m.pinned?'📌 ':'')+(m.text.length>26?m.text.slice(0,26)+'…':m.text);c.onclick=()=>showMsg(m.id);q.appendChild(c)});
+}
+
+/* ---------- messages ---------- */
+async function loadMsgs(){try{const r=await api('/api/messages');MSGS=r.items;renderMsgs();renderQuick()}catch(e){}}
+function renderMsgs(){
+  $('msgCount').textContent=MSGS.length; const L=$('msgList');
+  if(!MSGS.length){L.innerHTML='<div class="emptyState"><svg><use href="#i-list"/></svg><div>مفيش رسائل محفوظة</div><div class="small">اضغط + عشان تضيف رسالة</div></div>';return}
+  L.innerHTML=MSGS.map(m=>`<div class="item"><div class="grow" style="min-width:0"><div class="txt">${esc(m.text)}</div>
+    <div class="meta">${m.pinned?'<span class="badge">📌 مثبتة</span>':''}</div></div>
+    <div class="acts">
+      <button class="ib" title="اعرضها" onclick="showMsgAsk(${m.id})"><svg><use href="#i-play"/></svg></button>
+      <button class="ib ${m.pinned?'on':''}" title="تثبيت" onclick="pinMsg(${m.id},${m.pinned?0:1})"><svg><use href="#i-pin"/></svg></button>
+      <button class="ib" title="تعديل" onclick="openMsgSheet(${m.id})"><svg><use href="#i-edit"/></svg></button>
+      <button class="ib del" title="حذف" onclick="delMsg(${m.id})"><svg><use href="#i-trash"/></svg></button>
+    </div></div>`).join('');
+}
+async function showMsg(id,d=0){try{const r=await api('/api/messages/show',{id,dur:d});toast(r.acked?'✅ اتعرضت على الشاشة':'⚠️ الشاشة ماردتش',!r.acked);refresh()}catch(e){toast(e.message,true)}}
+function showMsgAsk(id){
+  openSheet(`<h3>اعرض الرسالة لمدة…</h3><div class="chips" style="margin-bottom:6px">
+    ${[[0,'دائم'],[60,'دقيقة'],[300,'5 د'],[600,'10 د'],[1800,'30 د'],[3600,'ساعة']].map(([d,l])=>`<button class="chip" onclick="closeSheet();showMsg(${id},${d})">${l}</button>`).join('')}</div>`);
+}
+async function pinMsg(id,pin){try{await api('/api/messages/pin',{id,pin});toast(pin?'📌 اتثبتت':'اتشال التثبيت');loadMsgs();refresh()}catch(e){toast(e.message,true)}}
+async function delMsg(id){if(!confirm('تحذف الرسالة دي؟'))return;try{await api('/api/messages/delete',{id});toast('اتحذفت');loadMsgs();refresh()}catch(e){toast(e.message,true)}}
+function openMsgSheet(id){
+  const m=MSGS.find(x=>x.id===id);
+  openSheet(`<h3>${m?'تعديل الرسالة':'رسالة جديدة'}</h3>
+    <textarea id="mTxt" maxlength="160" placeholder="Message text…">${m?esc(m.text):''}</textarea>
+    <div class="row" style="margin:6px 0 14px"><span class="grow small muted">عربي أو إنجليزي</span><span class="counter" id="mCnt">${m?m.text.length:0} / 160</span></div>
+    <div class="row"><button class="btn primary grow" onclick="saveMsg(${m?m.id:0})">حفظ</button><button class="btn ghost" onclick="closeSheet()">إلغاء</button></div>`);
+  const t=$('mTxt'); t.oninput=()=>$('mCnt').textContent=t.value.length+' / 160'; setTimeout(()=>t.focus(),250);
+}
+async function saveMsg(id){
+  const t=$('mTxt').value.trim(); if(!t){toast('اكتب الرسالة',true);return}
+  try{await api(id?'/api/messages/update':'/api/messages/add',id?{id,text:t}:{text:t});closeSheet();toast('اتحفظت');loadMsgs()}catch(e){toast(e.message,true)}
+}
+
+/* ---------- schedules ---------- */
+async function loadSched(){try{const r=await api('/api/schedules');SCHED=r.items;renderSched(r.now)}catch(e){}}
+function renderSched(now){
+  $('schCount').textContent=SCHED.length; const L=$('schList');
+  if(!SCHED.length){L.innerHTML='<div class="emptyState"><svg><use href="#i-clock"/></svg><div>مفيش رسائل متجدولة</div><div class="small">اضغط + عشان تحدد ميعاد لرسالة</div></div>';return}
+  L.innerHTML=SCHED.map(s=>{const left=s.at-(now||Math.floor(Date.now()/1000));
+    return `<div class="item"><div class="grow" style="min-width:0"><div class="txt">${esc(s.text)}</div>
+      <div class="meta">⏰ ${fmtTime(s.at)} · ${left>0?'بعد '+fmtLeft(left):'الآن'} · المدة: ${fmtDur(s.dur)}</div></div>
+      <div class="acts"><button class="ib del" onclick="delSched(${s.id})"><svg><use href="#i-trash"/></svg></button></div></div>`}).join('');
+}
+async function delSched(id){try{await api('/api/schedules/delete',{id});toast('اتلغت');loadSched()}catch(e){toast(e.message,true)}}
+function openSchedSheet(){
+  const d=new Date(Date.now()+15*60000); d.setSeconds(0,0);
+  const local=new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  openSheet(`<h3>جدولة رسالة</h3>
+    <div class="field"><label>الرسالة</label>
+      ${MSGS.length?`<select id="sPick" onchange="if(this.value)$('sTxt').value=this.value"><option value="">— اختار من المحفوظة أو اكتب جديدة —</option>${MSGS.map(m=>`<option value="${esc(m.text)}">${esc(m.text.slice(0,40))}</option>`).join('')}</select><div style="height:8px"></div>`:''}
+      <textarea id="sTxt" maxlength="160" placeholder="Message text…"></textarea></div>
+    <div class="field"><label>إمتى؟</label>
+      <div class="seg" id="sMode" style="margin-bottom:10px"><button class="on" data-m="in">بعد مدة</button><button data-m="at">في ميعاد محدد</button></div>
+      <div id="sIn"><div class="chips" id="sInChips">${[[5,'5 د'],[10,'10 د'],[15,'15 د'],[30,'30 د'],[60,'ساعة'],[120,'ساعتين']].map(([m,l],i)=>`<button class="chip ${i==1?'on':''}" data-m="${m}">${l}</button>`).join('')}</div>
+        <div class="row" style="margin-top:10px"><input type="number" id="sMin" min="1" value="10" style="max-width:110px"><span class="muted">دقيقة</span></div></div>
+      <div id="sAt" style="display:none"><input type="datetime-local" id="sDate" value="${local}"></div></div>
+    <div class="field"><label>تفضل معروضة قد إيه؟</label>
+      <div class="chips" id="sDurChips">${[[0,'دائم'],[60,'دقيقة'],[300,'5 د'],[600,'10 د'],[1800,'30 د'],[3600,'ساعة']].map(([d,l],i)=>`<button class="chip ${i==3?'on':''}" data-d="${d}">${l}</button>`).join('')}</div></div>
+    <div class="row"><button class="btn primary grow" onclick="saveSched()">جدولة</button><button class="btn ghost" onclick="closeSheet()">إلغاء</button></div>`);
+  let mode='in';
+  document.querySelectorAll('#sMode button').forEach(b=>b.onclick=()=>{mode=b.dataset.m;document.querySelectorAll('#sMode button').forEach(x=>x.classList.toggle('on',x===b));
+    $('sIn').style.display=mode==='in'?'block':'none';$('sAt').style.display=mode==='at'?'block':'none';$('sheet').dataset.mode=mode});
+  $('sheet').dataset.mode='in';
+  document.querySelectorAll('#sInChips .chip').forEach(c=>c.onclick=()=>{document.querySelectorAll('#sInChips .chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');$('sMin').value=c.dataset.m});
+  document.querySelectorAll('#sDurChips .chip').forEach(c=>c.onclick=()=>{document.querySelectorAll('#sDurChips .chip').forEach(x=>x.classList.remove('on'));c.classList.add('on')});
+}
+async function saveSched(){
+  const t=$('sTxt').value.trim(); if(!t){toast('اكتب الرسالة',true);return}
+  const mode=$('sheet').dataset.mode; let at;
+  if(mode==='in'){const m=+$('sMin').value; if(!(m>0)){toast('حدد عدد الدقايق',true);return} at=Math.floor(Date.now()/1000)+m*60}
+  else{const v=$('sDate').value; if(!v){toast('حدد الميعاد',true);return} at=Math.floor(new Date(v).getTime()/1000); if(at<=Date.now()/1000){toast('الميعاد لازم يكون في المستقبل',true);return}}
+  const d=+document.querySelector('#sDurChips .chip.on').dataset.d;
+  try{await syncTime();await api('/api/schedules/add',{text:t,at,dur:d});closeSheet();toast('⏰ اتجدولت');loadSched()}catch(e){toast(e.message,true)}
+}
+
+/* ---------- settings ---------- */
+async function testEsp(){setRes('r1','…','run');const t=performance.now();try{await api('/api/status',null,4000);setRes('r1','✓ '+Math.round(performance.now()-t)+' ms','ok')}catch(e){setRes('r1','✗ مفيش اتصال','bad')}}
+async function testScreen(){setRes('r2','…','run');try{const r=await api('/api/screen/test',{});setRes('r2',r.alive?'✓ بترد '+r.ms+' ms':'✗ مابتردش',r.alive?'ok':'bad')}catch(e){setRes('r2','✗ '+(/ConnectException|timeout|SocketTimeout/i.test(e.message)?'الموبايل مش واصل للـ ESP32':e.message),'bad')}refresh()}
+async function testMsg(){setRes('r3','…','run');try{const r=await api('/api/screen/testmsg',{});setRes('r3',r.acked?'✓ وصلت والشاشة أكدت':(S&&S.screen.blind?'⚠️ اتبعتت — بص على الشاشة':'✗ ماوصلتش'),r.acked?'ok':'bad');refresh()}catch(e){setRes('r3','✗ '+e.message,'bad')}}
+async function detect(){
+  setRes('r4','بيدوّر…','run');
+  try{ await api('/api/screen/detect',{}); }catch(e){setRes('r4','✗ '+e.message,'bad');return}
+  for(let i=0;i<120;i++){ await new Promise(r=>setTimeout(r,1500));
+    try{const st=await api('/api/status',null,4000); S=st; renderStatus();
+      const sc=st.screen;
+      if(sc.found){setRes('r4','✓ RX'+sc.rx+' TX'+sc.tx,'ok');return}
+      if(!sc.searching){setRes('r4','✗ مش لاقيها','bad');return}
+      setRes('r4','بيدوّر… '+Math.round(100*sc.progress/Math.max(1,sc.total))+'%','run');
+    }catch(e){}
+  }
+  setRes('r4','✗ انتهى الوقت','bad');
+}
+let brT; $('bright').oninput=e=>{$('brVal').textContent=e.target.value+'%';clearTimeout(brT);brT=setTimeout(async()=>{try{await api('/api/screen/brightness',{value:e.target.value})}catch(x){toast(x.message,true)}},250)};
+async function saveWifi(){
+  const s=$('ssid').value.trim(),p=$('wpass').value;
+  if(s.length<2){toast('اكتب اسم الشبكة',true);return} if(p&&p.length<8){toast('كلمة السر 8 حروف على الأقل',true);return}
+  if(!confirm('هيتم حفظ الشبكة وإعادة تشغيل الـ ESP32. تكمل؟'))return;
+  try{localStorage.setItem('apSsid',s);if(p)localStorage.setItem('apPass',p)}catch(e){}
+  try{await api('/api/wifi',{ssid:s,pass:p})}catch(e){} toast('اتحفظت — اتوصل بالشبكة "'+s+'"');
+}
+async function loadLog(){try{const r=await api('/api/log');$('log').textContent=r.items.join('\n')||'—'}catch(e){$('log').textContent='مش قادر يجيب السجل'}}
+async function reboot(){if(!confirm('إعادة تشغيل الـ ESP32؟'))return;try{await api('/api/reboot',{})}catch(e){}toast('بيعيد التشغيل… استنى 5 ثواني')}
+
+(function(){const sel=$('mBaud');[115200,9600,19200,38400,57600,230400,460800,921600].forEach(b=>{const o=document.createElement('option');o.value=b;o.textContent=b;sel.appendChild(o)})})();
+async function applyManual(){
+  setRes('r5','بيجرب…','run');
+  try{const r=await api('/api/screen/pins',{rx:$('mRx').value,tx:$('mTx').value,baud:$('mBaud').value,inv:$('mInv').checked?1:0,crc:$('mCrc').checked?1:0},6000);
+    window._mFilled=false; setRes('r5',r.found?'✓ الشاشة ردت':'⚠️ مفيش رد — هيبعت على الإعداد ده',r.found?'ok':'bad'); refresh();
+  }catch(e){setRes('r5','✗ '+e.message,'bad')}
+}
+/* ---------- sheet ---------- */
+function openSheet(html){$('sheet').innerHTML='<div class="grab"></div>'+html;$('sheet').classList.add('show');$('sheetBg').classList.add('show')}
+function closeSheet(){$('sheet').classList.remove('show');$('sheetBg').classList.remove('show')}
+
+/* ---------- start ---------- */
+refresh(); setInterval(()=>refresh(),3000);
+setInterval(()=>{if(curPage==='sched'&&online)loadSched()},5000);
+</script>
+</body>
+</html>

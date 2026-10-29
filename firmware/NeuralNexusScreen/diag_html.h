@@ -1,0 +1,130 @@
+// Generated from diag.html - do not edit by hand
+#pragma once
+#include <pgmspace.h>
+const char DIAG_HTML[] PROGMEM = R"DIAG(<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Screen Diagnostics</title>
+<style>
+:root{--bg:#f4f6f5;--card:#fff;--tx:#14211b;--mu:#5d6f66;--ok:#1c8a4f;--okb:#e2f5ea;--bad:#c8372d;--badb:#fbe7e5;--wr:#a86a10;--wrb:#fdf3e1;--br:#0f7a56;--ln:#dbe5df}
+@media (prefers-color-scheme:dark){:root{--bg:#0d1512;--card:#15201b;--tx:#e7f1ec;--mu:#93a89d;--okb:#163322;--badb:#3a1d1a;--wrb:#3a2d16;--ln:#26372f;--ok:#4fd08a;--bad:#ff6b5f;--wr:#f0b452;--br:#25b383}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px system-ui,Tahoma,sans-serif;padding:12px}
+h1{font-size:18px;margin:4px 0 10px}.card{background:var(--card);border-radius:14px;padding:12px;margin-bottom:10px}
+button{font:inherit;border:0;border-radius:10px;padding:12px;font-weight:700;cursor:pointer;background:var(--ln);color:var(--tx)}
+button.p{background:var(--br);color:#fff;width:100%;font-size:16px}button:disabled{opacity:.5}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.g{flex:1}
+.st{display:flex;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--ln)}.st:first-child{border:0}
+.b{padding:3px 9px;border-radius:8px;font-size:13px;font-weight:700;white-space:nowrap}
+.ok{background:var(--okb);color:var(--ok)}.bad{background:var(--badb);color:var(--bad)}.wr{background:var(--wrb);color:var(--wr)}.nn{background:var(--ln);color:var(--mu)}
+textarea{width:100%;height:220px;font:12px ui-monospace,Consolas,monospace;direction:ltr;text-align:left;background:var(--bg);color:var(--tx);border:1px solid var(--ln);border-radius:10px;padding:8px}
+.w{display:grid;grid-template-columns:1fr 1fr;gap:8px}.w button{padding:10px;font-size:13px}
+small{color:var(--mu)}input{font:inherit;padding:10px;border-radius:10px;border:1px solid var(--ln);background:var(--bg);color:var(--tx);width:100%;direction:ltr}
+</style>
+</head>
+<body>
+<h1>🔧 فحص توصيل الشاشة</h1>
+
+<div class="card">
+  <button class="p" id="go" onclick="runAll()">▶ تشغيل الفحص الكامل</button>
+  <small>بياخد حوالي 15 ثانية. شيل كابل الـ USB من الـ ESP32 قبل الفحص.</small>
+</div>
+
+<div class="card" id="steps">
+  <div class="st"><span class="g">1) الموبايل ← ESP32 (واي فاي)</span><span class="b nn" id="s1">—</span></div>
+  <div class="st"><span class="g">2) حالة الـ ESP32</span><span class="b nn" id="s2">—</span></div>
+  <div class="st"><span class="g">3) الشاشة بترد؟ (فحص كل الأطراف والسرعات)</span><span class="b nn" id="s3">—</span></div>
+  <div class="st"><span class="g">4) الكتابة على الشاشة</span><span class="b nn" id="s4">—</span></div>
+</div>
+
+<div class="card">
+  <b>اختبار الكتابة يدوي</b> — اضغط وبص على الشاشة:<br><small>كل زرار بيبعت كلمة مختلفة على طريق مختلف. اختار اللي ظهر.</small>
+  <div class="w" style="margin-top:8px">
+    <button onclick="w('tx0',0,'A TX0')">A: TX0</button>
+    <button onclick="w('tx0',1,'B TX0 INV')">B: TX0 معكوس</button>
+    <button onclick="w('tx17',0,'C TX17')">C: TX17</button>
+    <button onclick="w('tx17',1,'D TX17 INV')">D: TX17 معكوس</button>
+  </div>
+  <div class="row" style="margin-top:8px"><span class="g">ظهر على الشاشة:</span>
+    <button onclick="seen('A')">A</button><button onclick="seen('B')">B</button><button onclick="seen('C')">C</button><button onclick="seen('D')">D</button><button onclick="seen('NONE')">ولا حاجة</button></div>
+  <div class="row" style="margin-top:8px"><input id="cust" placeholder="Custom text" maxlength="60"><button onclick="w(lastPath,lastInv,document.getElementById('cust').value||'HELLO')">ابعت</button></div>
+</div>
+
+<div class="card">
+  <div class="row" style="margin-bottom:6px"><b class="g">📋 التقرير</b><button onclick="copyRep()">نسخ</button><button onclick="dl()">تحميل</button></div>
+  <textarea id="rep" readonly>اضغط "تشغيل الفحص الكامل"</textarea>
+</div>
+
+<script>
+/* Inside the Android app: send /api/... requests through the native bridge (bound to the ESP32 Wi-Fi) */
+if(window.Android&&window.Android.request){let _i=0;const _p={};
+ window.__nr=function(id,ok,code,text){const p=_p[id];if(!p)return;delete _p[id];
+  if(!ok)p.rej(new TypeError(text||'network error'));else p.res(new Response(text,{status:code||200,headers:{'Content-Type':'application/json'}}));};
+ const _f=window.fetch.bind(window);
+ window.fetch=function(u,o){if(typeof u!=='string'||u[0]!=='/')return _f(u,o);o=o||{};
+  return new Promise((res,rej)=>{const id=String(++_i);_p[id]={res,rej};
+   if(o.signal)o.signal.addEventListener('abort',()=>{if(_p[id]){delete _p[id];rej(new DOMException('aborted','AbortError'))}});
+   const body=o.body?String(o.body):'';
+   try{window.Android.request(id,o.method||'GET',u,body,30000)}catch(e){delete _p[id];rej(e)}});};
+ document.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('h1');if(h){const a=document.createElement('a');a.href='app.html';a.textContent='‹ رجوع';a.style.cssText='float:left;font-size:14px;color:inherit';h.appendChild(a)}});
+}
+</script>
+<script>
+const $=id=>document.getElementById(id);
+let R=[],lastPath='tx0',lastInv=0;
+function L(s){R.push(s);$('rep').value=R.join('\n');$('rep').scrollTop=1e9}
+function S(id,t,c){const e=$(id);e.textContent=t;e.className='b '+c}
+async function call(path,data,ms=8000){
+  const c=new AbortController(),h=setTimeout(()=>c.abort(),ms),t=performance.now();
+  try{const r=await fetch(path,data?{method:'POST',body:new URLSearchParams(data),signal:c.signal}:{signal:c.signal});
+    const j=await r.json();j._ms=Math.round(performance.now()-t);return j}finally{clearTimeout(h)}
+}
+async function runAll(){
+  $('go').disabled=true;R=[];['s1','s2','s3','s4'].forEach(i=>S(i,'…','wr'));
+  L('=== SCREEN DIAGNOSTIC REPORT ===');L('Time: '+new Date().toString());L('Phone: '+navigator.userAgent);L('Page: '+location.href);L('');
+  // 1
+  let st;
+  try{st=await call('/api/status',null,5000);S('s1','✓ '+st._ms+' ms','ok');L('[1] Phone -> ESP32: OK ('+st._ms+' ms)')}
+  catch(e){S('s1','✗ مفيش اتصال','bad');L('[1] Phone -> ESP32: FAILED ('+e.message+')');L('    => الموبايل مش متوصل بواي فاي NeuralNexus-Screen، أو الـ ESP32 مش شغال.');done();return}
+  // 2
+  const sc=st.screen;
+  L('[2] ESP32: fw '+st.fw+', last boot: '+(st.boot||'?')+', uptime '+st.uptime+'s, wifi "'+st.wifi.ssid+'" clients '+st.wifi.clients);
+  L('    link: found='+sc.found+' blind='+sc.blind+' searching='+sc.searching+' RX='+sc.rx+' TX='+sc.tx+' baud='+sc.baud+' inv='+sc.inv+' crc='+sc.crc);
+  L('    frames sent/acked: '+sc.sent+'/'+sc.acked+', on screen now: "'+st.current.text+'"');
+  S('s2','fw '+st.fw,'ok');
+  // 3
+  S('s3','بيفحص…','wr');L('[3] Scanning all ports/bauds (ESP32 sends a read request, records every byte that comes back)...');
+  let sr;
+  try{sr=await call('/api/diag/scan',{},30000)}catch(e){S('s3','✗ '+e.message,'bad');L('    scan FAILED: '+e.message);done();return}
+  const hits=sr.items.filter(i=>i.rxBytes);
+  const echo=sr.items.filter(i=>/5A A5 04 83 00 0F 01/.test(i.rxBytes));
+  sr.items.filter(i=>i.valid||i.rxBytes).forEach(i=>L('    '+(i.valid?'VALID ':(/5A A5 04 83 00 0F 01/.test(i.rxBytes)?'ECHO  ':'bytes '))+i.port+' @'+i.baud+(i.inv?' inv':'')+(i.crc?' crc':'')+' -> '+i.rxBytes));
+  if(!sr.found&&echo.length){S('s3','🔁 الـ ESP بيستقبل نفسه (loopback)','wr');L('    RESULT: ESP32 receives its OWN request back on '+echo.map(i=>i.port+(i.inv?' inv':'')).filter((v,k,a)=>a.indexOf(v)==k).join(', ')+' -> ESP32 + MAX3232 path is GOOD; the problem is on the screen side (wires to screen / TTL-RS232 setting).');}
+  else if(sr.found){const v=sr.items.find(i=>i.valid);S('s3','✓ بترد: '+v.port+' '+v.baud+(v.inv?' معكوس':''),'ok');L('    RESULT: screen ANSWERS on '+v.port+' @'+v.baud+(v.inv?' inverted':'')+(v.crc?' CRC':''));}
+  else if(hits.length){S('s3','⚠️ فيه بيانات بس مش مفهومة','wr');L('    RESULT: bytes arrive but no valid DWIN reply -> wrong baud / inversion / noise on RX line.');}
+  else{S('s3','✗ ولا بايت رجع','bad');L('    RESULT: NOTHING came back on any port/baud ('+sr.items.length+' tries).');
+    L('    => either the screen never receives (TX wire/levels), or its reply never reaches the ESP32 (RX wire, USB cable on RX0).');}
+  // 4
+  S('s4','بيبعت…','wr');L('[4] Write test: sending "DIAG OK" ...');
+  try{const p=sr.found?sr.items.find(i=>i.valid):null;
+    const r=await call('/api/diag/write',{path:p&&p.tx==17?'tx17':'tx0',inv:p&&p.inv?1:0,baud:p?p.baud:115200,crc:p&&p.crc?1:0,text:'DIAG OK '+new Date().toLocaleTimeString('en-GB')});
+    S('s4',r.ack?'✓ الشاشة أكدت':'⚠️ اتبعت بدون تأكيد — بص على الشاشة',r.ack?'ok':'wr');L('    ack='+r.ack+(r.rxBytes?' rx: '+r.rxBytes:''));
+  }catch(e){S('s4','✗','bad');L('    write FAILED: '+e.message)}
+  L('');L('Next: use buttons A/B/C/D and tell which word appeared on the screen.');
+  try{const lg=await call('/api/log');L('');L('--- ESP32 log (newest first) ---');lg.items.forEach(x=>L(x))}catch(e){}
+  done();
+}
+function done(){$('go').disabled=false}
+async function w(path,inv,text){
+  lastPath=path;lastInv=inv;
+  try{const r=await call('/api/diag/write',{path,inv,text});L('[manual] '+path+(inv?' inv':'')+' "'+text+'" -> ack='+r.ack+(r.rxBytes?' rx: '+r.rxBytes:''))}
+  catch(e){L('[manual] '+path+' FAILED: '+e.message)}
+}
+function seen(x){L('[user] appeared on screen: '+x)}
+function copyRep(){$('rep').select();try{navigator.clipboard.writeText($('rep').value)}catch(e){document.execCommand('copy')}}
+function dl(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([$('rep').value],{type:'text/plain'}));a.download='screen-report.txt';a.click()}
+</script>
+</body>
+</html>
+)DIAG";
